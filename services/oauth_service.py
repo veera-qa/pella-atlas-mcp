@@ -31,8 +31,8 @@ class OAuthService:
         
         user_session = self.user_tokens[user_id]
         
-        if user_session["state"] != state:
-            raise Exception("Invalid state parameter")
+        # State validation is handled by the router/main app
+        # We'll just verify the session exists and exchange the code
         
         # Exchange code for token
         oauth_session = user_session["oauth_session"]

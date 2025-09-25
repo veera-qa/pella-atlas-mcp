@@ -7,12 +7,12 @@ from services.crew_service import CrewService
 router = APIRouter()
 
 def get_oauth_service():
-    from main import oauth_service
-    return oauth_service
+    import main
+    return main.get_oauth_service()
 
 def get_crew_service():
-    from main import crew_service
-    return crew_service
+    import main
+    return main.get_crew_service()
 
 def get_current_user(request: Request):
     user_id = request.session.get("user_id")

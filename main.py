@@ -29,9 +29,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Setup templates
 templates = Jinja2Templates(directory="templates")
 
+# Routers will be included after services are defined
+
 # Global services - lazy loaded to avoid circular imports
 _oauth_service = None
 _crew_service = None
+
+# Make oauth_service available globally for routers
+oauth_service = None
 
 def get_oauth_service():
     global _oauth_service
@@ -53,59 +58,6 @@ def get_current_user(request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user_id
-
-# Add authentication routes directly to avoid circular imports
-@app.get("/auth/login")
-async def login(request: Request):
-    """Initiate OAuth login"""
-    try:
-        oauth_service = get_oauth_service()
-        # Generate or get user ID
-        user_id = request.session.get("user_id")
-        if not user_id:
-            user_id = str(uuid.uuid4())
-            request.session["user_id"] = user_id
-        
-        # Get authorization URL
-        auth_url, state = await oauth_service.get_authorization_url(user_id)
-        
-        # Store state in session for verification
-        request.session["oauth_state"] = state
-        
-        # Redirect to Atlassian OAuth
-        return RedirectResponse(url=auth_url)
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OAuth initiation failed: {str(e)}")
-
-@app.get("/callback")
-async def oauth_callback(request: Request, code: str, state: str):
-    """Handle OAuth callback"""
-    try:
-        oauth_service = get_oauth_service()
-        user_id = request.session.get("user_id")
-        stored_state = request.session.get("oauth_state")
-        
-        if not user_id:
-            raise HTTPException(status_code=400, detail="No user session found")
-        
-        if not stored_state or stored_state != state:
-            raise HTTPException(status_code=400, detail="Invalid state parameter")
-        
-        # Exchange code for token
-        token = await oauth_service.handle_oauth_callback(user_id, code, state)
-        
-        # Clear OAuth state from session
-        request.session.pop("oauth_state", None)
-        
-        # Mark user as authenticated
-        request.session["authenticated"] = True
-        
-        # Redirect to dashboard
-        return RedirectResponse(url="/", status_code=303)
-        
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"OAuth callback failed: {str(e)}")
 
 @app.post("/atlassian/query")
 async def execute_query(request: Request, query: str = Form(...)):
@@ -148,34 +100,6 @@ async def execute_query(request: Request, query: str = Form(...)):
                 "query": query
             }
         )
-
-@app.get("/auth/callback")
-async def oauth_callback_auth(request: Request, code: str, state: str):
-    """Handle OAuth callback (auth route alias)"""
-    return await oauth_callback(request, code, state)
-
-@app.get("/oauth/callback")
-async def oauth_callback_oauth(request: Request, code: str, state: str):
-    """Handle OAuth callback (oauth route alias)"""
-    return await oauth_callback(request, code, state)
-
-@app.get("/auth/status")
-async def auth_status(request: Request):
-    """Get authentication status for current user"""
-    user_id = request.session.get("user_id")
-    
-    if not user_id:
-        return {"authenticated": False, "user_id": None}
-    
-    oauth_service = get_oauth_service()
-    is_authenticated = await oauth_service.is_user_authenticated(user_id)
-    user_info = await oauth_service.get_user_info(user_id) if is_authenticated else None
-    
-    return {
-        "authenticated": is_authenticated,
-        "user_id": user_id,
-        "user_info": user_info
-    }
 
 @app.get("/atlassian/tools")
 async def get_available_tools(request: Request):
@@ -252,6 +176,11 @@ async def logout(request: Request):
     """Logout current user"""
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)
+
+# Include routers after services are defined
+from routers import auth, atlassian
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(atlassian.router, prefix="/atlassian", tags=["atlassian"])
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,9 +6,9 @@ from services.oauth_service import OAuthService
 router = APIRouter()
 
 def get_oauth_service():
-    # This will be properly injected in main.py
-    from main import oauth_service
-    return oauth_service
+    # Import here to avoid circular import
+    import main
+    return main.get_oauth_service()
 
 @router.get("/login")
 async def login(request: Request, oauth_service: OAuthService = Depends(get_oauth_service)):

@@ -37,7 +37,7 @@ class AtlassianOAuthClient:
         # Atlassian OAuth 2.1 endpoints
         self.auth_url = 'https://auth.atlassian.com/authorize'
         self.token_url = 'https://auth.atlassian.com/oauth/token'
-        self.redirect_uri = 'http://localhost:8080/callback'
+        self.redirect_uri = 'http://localhost:8080/auth/callback'
         
         # Common scopes for Jira and Confluence
         self.scope = [
