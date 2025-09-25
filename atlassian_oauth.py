@@ -37,7 +37,11 @@ class AtlassianOAuthClient:
         # Atlassian OAuth 2.1 endpoints
         self.auth_url = 'https://auth.atlassian.com/authorize'
         self.token_url = 'https://auth.atlassian.com/oauth/token'
-        self.redirect_uri = 'http://localhost:8080/auth/callback'
+        
+        # Use SERVER_IP from environment for team access
+        server_ip = os.getenv('SERVER_IP', 'localhost')
+        server_port = os.getenv('SERVER_PORT', '8080')
+        self.redirect_uri = f'http://{server_ip}:{server_port}/auth/callback'
         
         # Common scopes for Jira and Confluence
         self.scope = [
