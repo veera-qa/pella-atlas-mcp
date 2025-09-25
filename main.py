@@ -48,8 +48,11 @@ def get_oauth_service():
 def get_crew_service():
     global _crew_service
     if _crew_service is None:
-        from services.crew_service import CrewService
-        _crew_service = CrewService()
+        try:
+            from services.crew_service import CrewService
+            _crew_service = CrewService()
+        except ImportError as e:
+            raise HTTPException(status_code=503, detail=f"CrewAI service unavailable: {str(e)}")
     return _crew_service
 
 # Dependency to get current user session
@@ -178,9 +181,10 @@ async def logout(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 # Include routers after services are defined
-from routers import auth, atlassian
+from routers import auth
+# from routers import atlassian  # Temporarily disabled due to CrewAI import issue
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(atlassian.router, prefix="/atlassian", tags=["atlassian"])
+# app.include_router(atlassian.router, prefix="/atlassian", tags=["atlassian"])  # Temporarily disabled
 
 if __name__ == "__main__":
     import uvicorn
