@@ -1,0 +1,144 @@
+/* Custom styles for Atlassian MCP Server */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: #0066cc;
+    border-color: #0066cc;
+}
+
+.btn-primary:hover {
+    background-color: #0052a3;
+    border-color: #0052a3;
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+#result-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#result-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.875rem;
+}
+
+.history-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.history-item:hover {
+    background-color: #f8f9fa;
+}
+
+.tools-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.navbar-text {
+    font-size: 0.9rem;
+}
+
+/* Loading animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .navbar-text {
+        display: none;
+    }
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-connected {
+    background-color: #28a745;
+}
+
+.status-disconnected {
+    background-color: #dc3545;
+}
+
+.status-warning {
+    background-color: #ffc107;
+}
+
+/* Tool badges */
+.tool-badge {
+    font-size: 0.75rem;
+    margin: 2px;
+}
+
+/* History styling */
+.history-query {
+    font-size: 0.875rem;
+    line-height: 1.3;
+}
+
+.history-timestamp {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Form improvements */
+.form-control:focus {
+    border-color: #0066cc;
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+/* Footer */
+.footer-info {
+    margin-top: 2rem;
+    padding: 1rem 0;
+    border-top: 1px solid #e9ecef;
+    color: #6c757d;
+    font-size: 0.875rem;
+}

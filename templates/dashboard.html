@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Atlassian MCP Server</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-atlassian"></i> Atlassian MCP Server
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle"></i> User: {{ user_id[:8] }}...
+                </span>
+                <form action="/logout" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Status Row -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-success" role="alert" id="status-alert">
+                    <i class="bi bi-check-circle"></i> Connected to Atlassian
+                    <span id="status-text">Checking authentication...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Query Form -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-chat-square-text"></i> Ask Atlassian</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="query-form">
+                            <div class="mb-3">
+                                <label for="query" class="form-label">Enter your question:</label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="query" 
+                                    name="query" 
+                                    rows="3" 
+                                    placeholder="e.g., Get all open issues in the QA project"
+                                    required
+                                ></textarea>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary" id="submit-btn">
+                                    <i class="bi bi-send"></i> Execute Query
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Loading spinner -->
+                        <div id="loading" class="text-center mt-3" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Processing your query...</p>
+                        </div>
+                        
+                        <!-- Results -->
+                        <div id="results" class="mt-4" style="display: none;">
+                            <hr>
+                            <h6>Results:</h6>
+                            <div id="result-content" class="border p-3 bg-light rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-md-4">
+                <!-- Available Tools -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6><i class="bi bi-tools"></i> Available Tools</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="tools-loading">Loading tools...</div>
+                        <div id="tools-list" style="display: none;">
+                            <small class="text-muted">Tools will be loaded here</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Query History -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6><i class="bi bi-clock-history"></i> Recent Queries</h6>
+                        <button class="btn btn-outline-danger btn-sm" id="clear-history" onclick="clearHistory()">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="history-loading">Loading history...</div>
+                        <div id="history-list" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <script>
+        // Check authentication status
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/auth/status');
+                const data = await response.json();
+                
+                const statusAlert = document.getElementById('status-alert');
+                const statusText = document.getElementById('status-text');
+                
+                if (data.authenticated) {
+                    statusAlert.className = 'alert alert-success';
+                    statusText.textContent = 'Authentication verified';
+                } else {
+                    statusAlert.className = 'alert alert-warning';
+                    statusText.textContent = 'Authentication required';
+                    // Redirect to login
+                    window.location.href = '/auth/login';
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+            }
+        }
+        
+        // Load available tools
+        async function loadTools() {
+            try {
+                const response = await fetch('/atlassian/tools');
+                const data = await response.json();
+                
+                const toolsList = document.getElementById('tools-list');
+                const toolsLoading = document.getElementById('tools-loading');
+                
+                toolsLoading.style.display = 'none';
+                toolsList.style.display = 'block';
+                
+                if (data.tools && data.tools.length > 0) {
+                    toolsList.innerHTML = `
+                        <div class="badge bg-primary mb-2">${data.count} tools available</div>
+                        <div class="small">
+                            ${data.tools.slice(0, 5).map(tool => `<div>• ${tool}</div>`).join('')}
+                            ${data.tools.length > 5 ? `<div class="text-muted">... and ${data.tools.length - 5} more</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    toolsList.innerHTML = '<small class="text-muted">No tools available</small>';
+                }
+            } catch (error) {
+                console.error('Failed to load tools:', error);
+                document.getElementById('tools-loading').textContent = 'Failed to load tools';
+            }
+        }
+        
+        // Load query history
+        async function loadHistory() {
+            try {
+                const response = await fetch('/atlassian/history?limit=10');
+                const data = await response.json();
+                
+                const historyList = document.getElementById('history-list');
+                const historyLoading = document.getElementById('history-loading');
+                
+                historyLoading.style.display = 'none';
+                historyList.style.display = 'block';
+                
+                if (data.history && data.history.length > 0) {
+                    historyList.innerHTML = data.history.map(item => `
+                        <div class="border-bottom pb-2 mb-2 small">
+                            <div class="fw-bold text-truncate">${item.query}</div>
+                            <div class="text-muted">${new Date(item.timestamp).toLocaleString()}</div>
+                            ${item.success ? '<span class="badge bg-success">Success</span>' : '<span class="badge bg-danger">Error</span>'}
+                        </div>
+                    `).join('');
+                } else {
+                    historyList.innerHTML = '<small class="text-muted">No queries yet</small>';
+                }
+            } catch (error) {
+                console.error('Failed to load history:', error);
+            }
+        }
+        
+        // Clear history
+        async function clearHistory() {
+            if (confirm('Are you sure you want to clear your query history?')) {
+                try {
+                    const response = await fetch('/atlassian/history', { method: 'DELETE' });
+                    if (response.ok) {
+                        loadHistory();
+                    }
+                } catch (error) {
+                    console.error('Failed to clear history:', error);
+                }
+            }
+        }
+        
+        // Handle query form submission
+        document.getElementById('query-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = document.getElementById('query').value;
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const resultContent = document.getElementById('result-content');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                formData.append('query', query);
+                
+                const response = await fetch('/atlassian/query', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // Show results
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                
+                if (data.success) {
+                    resultContent.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>Query executed successfully!</strong>
+                        </div>
+                        <pre class="bg-white p-3 border rounded">${data.result}</pre>
+                    `;
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+                
+                // Reload history
+                loadHistory();
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                resultContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Network Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+            loadTools();
+            loadHistory();
+        });
+    </script>
+</body>
+</html>

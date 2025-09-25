@@ -1,0 +1,1 @@
+The complete list of active Jira projects is as detailed above, including project names, IDs, keys, and URLs.
