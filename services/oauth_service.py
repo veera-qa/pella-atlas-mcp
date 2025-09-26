@@ -36,7 +36,7 @@ class OAuthService:
         
         # Exchange code for token
         oauth_session = user_session["oauth_session"]
-        token = self.oauth_client.get_access_token(code, oauth_session)
+        token = await self.oauth_client.get_access_token(code, oauth_session)
         
         # Store token for user
         self.user_tokens[user_id] = {

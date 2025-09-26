@@ -69,12 +69,19 @@ class AtlassianOAuthClient:
         
         return authorization_url, state, oauth
     
-    def get_access_token(self, authorization_code, oauth_session):
-        """Exchange authorization code for access token"""
-        token = oauth_session.fetch_token(
-            self.token_url,
-            code=authorization_code,
-            client_secret=self.client_secret
+    async def get_access_token(self, authorization_code, oauth_session):
+        """Exchange authorization code for access token (async)"""
+        import asyncio
+        
+        # Run the blocking fetch_token call in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        token = await loop.run_in_executor(
+            None,
+            lambda: oauth_session.fetch_token(
+                self.token_url,
+                code=authorization_code,
+                client_secret=self.client_secret
+            )
         )
         return token
     
